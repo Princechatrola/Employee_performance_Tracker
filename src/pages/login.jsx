@@ -80,9 +80,9 @@ const Login = () => {
 
       // Redirect according to role
       if (data.user.role === "admin") {
-        navigate("/admin-dashboard");
+        navigate("/admin/dashboard");
       } else if (data.user.role === "employee") {
-        navigate("/employee-dashboard");
+        navigate("/EmployeeDashboard");
       } else {
         setError("Invalid user role.");
       }
@@ -144,34 +144,29 @@ const Login = () => {
 
           <form onSubmit={handleSubmit}>
 
-            {/* EMAIL */}
-
+            {/* EMAIL OR EMPLOYEE ID */}
             <div className="mb-5">
-
-              <label className="block mb-2 text-sm font-medium text-slate-300">
-                Email Address
+              <label className="mb-2 block text-sm font-medium text-slate-300">
+                Email Address or Employee ID
               </label>
 
               <div className="relative">
-
                 <Mail
                   size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
                 />
 
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="Enter your email"
-                  autoComplete="email"
+                  placeholder="Enter your email or employee ID"
+                  autoComplete="username"
                   required
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950 py-3.5 pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
                 />
-
               </div>
-
             </div>
 
             {/* PASSWORD */}

@@ -91,27 +91,33 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check fields
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required.",
+        message: "Email/Employee ID and password are required",
       });
     }
 
-    // Find user
+    const identifier = email.trim();
+
     const user = await User.findOne({
-      email: email.toLowerCase(),
+      $or: [
+        {
+          email: identifier.toLowerCase(),
+        },
+        {
+          employeeId: identifier.toUpperCase(),
+        },
+      ],
     });
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password.",
+        message: "Invalid email/employee ID or password",
       });
     }
 
-    // Check password
     const isPasswordCorrect = await bcrypt.compare(
       password,
       user.password
@@ -120,11 +126,10 @@ router.post("/login", async (req, res) => {
     if (!isPasswordCorrect) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password.",
+        message: "Invalid email/employee ID or password",
       });
     }
 
-    // Create JWT token
     const token = jwt.sign(
       {
         userId: user._id,
@@ -138,7 +143,7 @@ router.post("/login", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Login successful.",
+      message: "Login successful",
 
       token,
 
@@ -147,6 +152,7 @@ router.post("/login", async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
+        employeeId: user.employeeId,
         role: user.role,
       },
     });
@@ -155,7 +161,7 @@ router.post("/login", async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Server error during login.",
+      message: "Server error",
     });
   }
 });
