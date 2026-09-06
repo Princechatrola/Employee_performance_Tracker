@@ -22,6 +22,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -33,6 +34,7 @@ const Login = () => {
     setError("");
   };
 
+  // Handle login
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -46,7 +48,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      /*
       const response = await fetch(
         "http://localhost:5000/api/auth/login",
         {
@@ -61,29 +62,39 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
-      }
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      if (data.user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (data.user.role === "manager") {
-        navigate("/manager/dashboard");
-      } else {
-        navigate("/employee/dashboard");
-      }
-      */
-
-      // Demo Login
-      setTimeout(() => {
+        setError(data.message || "Invalid email or password.");
         setLoading(false);
-        navigate("/employee/dashboard");
-      }, 1000);
-    } catch (error) {
+        return;
+      }
+
+      // Store JWT token
+      localStorage.setItem("token", data.token);
+
+      // Store logged-in user
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
       setLoading(false);
-      setError(error.message || "Invalid email or password.");
+
+      // Redirect according to role
+      if (data.user.role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (data.user.role === "employee") {
+        navigate("/employee-dashboard");
+      } else {
+        setError("Invalid user role.");
+      }
+
+    } catch (error) {
+      console.error("Login Error:", error);
+
+      setLoading(false);
+
+      setError(
+        "Unable to connect to server. Please make sure the backend is running."
+      );
     }
   };
 
@@ -91,6 +102,7 @@ const Login = () => {
     <div className="relative min-h-screen bg-slate-950 text-white flex items-center justify-center px-5 py-10">
 
       {/* BACK BUTTON */}
+
       <Link
         to="/"
         className="absolute top-6 left-5 sm:left-8 inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition"
@@ -100,15 +112,20 @@ const Login = () => {
       </Link>
 
       {/* LOGIN CONTAINER */}
+
       <div className="w-full max-w-md">
 
         {/* LOGIN HEADER */}
+
         <div className="text-center mb-8">
+
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600/10 border border-blue-500/20 mb-5">
+
             <ShieldCheck
               size={28}
               className="text-blue-400"
             />
+
           </div>
 
           <h1 className="text-3xl font-bold">
@@ -118,20 +135,25 @@ const Login = () => {
           <p className="mt-2 text-sm text-slate-400">
             Sign in to your PerformanceTrack account
           </p>
+
         </div>
 
         {/* LOGIN CARD */}
+
         <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-6 sm:p-8 shadow-2xl">
 
           <form onSubmit={handleSubmit}>
 
             {/* EMAIL */}
+
             <div className="mb-5">
+
               <label className="block mb-2 text-sm font-medium text-slate-300">
                 Email Address
               </label>
 
               <div className="relative">
+
                 <Mail
                   size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
@@ -147,13 +169,17 @@ const Login = () => {
                   required
                   className="w-full rounded-xl border border-white/10 bg-slate-950 pl-11 pr-4 py-3.5 text-sm text-white placeholder:text-slate-600 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
                 />
+
               </div>
+
             </div>
 
             {/* PASSWORD */}
+
             <div className="mb-5">
 
               <div className="flex items-center justify-between mb-2">
+
                 <label className="text-sm font-medium text-slate-300">
                   Password
                 </label>
@@ -164,16 +190,22 @@ const Login = () => {
                 >
                   Forgot Password?
                 </Link>
+
               </div>
 
               <div className="relative">
+
                 <Lock
                   size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
                 />
 
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -190,16 +222,21 @@ const Login = () => {
                   }
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition"
                 >
+
                   {showPassword ? (
                     <EyeOff size={18} />
                   ) : (
                     <Eye size={18} />
                   )}
+
                 </button>
+
               </div>
+
             </div>
 
             {/* ERROR */}
+
             {error && (
               <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 p-3.5 text-sm text-red-400">
                 {error}
@@ -207,11 +244,13 @@ const Login = () => {
             )}
 
             {/* LOGIN BUTTON */}
+
             <button
               type="submit"
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 font-semibold transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-600/50 shadow-lg shadow-blue-600/20"
             >
+
               {loading ? (
                 <>
                   <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -220,30 +259,36 @@ const Login = () => {
               ) : (
                 "Sign In"
               )}
+
             </button>
+
           </form>
 
           {/* REGISTER */}
+
           <div className="mt-7 pt-6 border-t border-white/10 text-center">
+
             <p className="text-sm text-slate-500">
-              Don't have an account?
+
+              Don't have an Admin account?
 
               <Link
-                to="/register"
+                to="/AdminRegister"
                 className="ml-2 font-medium text-blue-400 hover:text-blue-300 transition"
               >
-                Create Account
+                Create Admin Account
               </Link>
+
             </p>
+
           </div>
 
         </div>
 
       </div>
+
     </div>
   );
 };
 
 export default Login;
-
-

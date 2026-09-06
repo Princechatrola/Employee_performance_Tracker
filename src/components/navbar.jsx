@@ -70,7 +70,7 @@ function Navbar() {
               </Link>
 
               <Link
-                to="/register"
+                to="/AdminRegister"
                 className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 transition text-sm font-semibold shadow-lg shadow-blue-600/20"
               >
                 Get Started
