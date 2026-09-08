@@ -8,6 +8,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { setAuthSession } from "../utils/auth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -67,14 +68,8 @@ const Login = () => {
         return;
       }
 
-      // Store JWT token
-      localStorage.setItem("token", data.token);
-
-      // Store logged-in user
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
+      // Store authentication session safely for admin / employee
+      setAuthSession(data.token, data.user);
 
       setLoading(false);
 

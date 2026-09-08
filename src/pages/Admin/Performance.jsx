@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import { getAdminToken } from "../../utils/auth";
 import {
   TrendingUp,
   TrendingDown,
@@ -10,608 +11,545 @@ import {
   Search,
   Eye,
   Star,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  CalendarCheck,
+  ChevronDown,
+  X,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
 const AdminPerformance = () => {
   const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("All Departments");
 
-  // Demo performance data
-  useEffect(() => {
-    const performanceData = [
-      {
-        id: 1,
-        name: "Rahul Sharma",
-        employeeId: "EMP1001",
-        department: "Development",
-        position: "Senior Developer",
-        score: 92,
-        goals: 95,
-        attendance: 98,
-        status: "Excellent",
-      },
-      {
-        id: 2,
-        name: "Priya Patel",
-        employeeId: "EMP1002",
-        department: "Design",
-        position: "UI/UX Designer",
-        score: 88,
-        goals: 90,
-        attendance: 96,
-        status: "Excellent",
-      },
-      {
-        id: 3,
-        name: "Amit Shah",
-        employeeId: "EMP1003",
-        department: "Development",
-        position: "Frontend Developer",
-        score: 81,
-        goals: 84,
-        attendance: 94,
-        status: "Good",
-      },
-      {
-        id: 4,
-        name: "Neha Mehta",
-        employeeId: "EMP1004",
-        department: "HR",
-        position: "HR Executive",
-        score: 76,
-        goals: 79,
-        attendance: 92,
-        status: "Good",
-      },
-      {
-        id: 5,
-        name: "Vivek Joshi",
-        employeeId: "EMP1005",
-        department: "Marketing",
-        position: "Marketing Executive",
-        score: 68,
-        goals: 70,
-        attendance: 88,
-        status: "Average",
-      },
-      {
-        id: 6,
-        name: "Karan Patel",
-        employeeId: "EMP1006",
-        department: "Development",
-        position: "Junior Developer",
-        score: 58,
-        goals: 61,
-        attendance: 85,
-        status: "Needs Improvement",
-      },
-    ];
-
-    setEmployees(performanceData);
-  }, []);
-
-  const departments = [
-    "All Departments",
-    ...new Set(employees.map((employee) => employee.department)),
-  ];
-
-  const filteredEmployees = employees.filter((employee) => {
-    const matchesSearch =
-      employee.name.toLowerCase().includes(search.toLowerCase()) ||
-      employee.employeeId.toLowerCase().includes(search.toLowerCase());
-
-    const matchesDepartment =
-      department === "All Departments" ||
-      employee.department === department;
-
-    return matchesSearch && matchesDepartment;
+  const [stats, setStats] = useState({
+    totalEvaluated: 0,
+    averageScore: 0,
+    averagePercentage: 0,
+    excellentCount: 0,
+    goodCount: 0,
+    needsImprovementCount: 0,
   });
 
-  const totalEmployees = employees.length;
+  // Detailed Modal
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
-  const averageScore =
-    employees.length > 0
-      ? Math.round(
-          employees.reduce((total, employee) => total + employee.score, 0) /
-            employees.length
-        )
-      : 0;
+  const fetchPerformanceData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const token = getAdminToken();
 
-  const excellentPerformers = employees.filter(
-    (employee) => employee.score >= 85
-  ).length;
+      if (!token) {
+        setError("Admin session expired. Please login.");
+        setLoading(false);
+        return;
+      }
 
-  const needsImprovement = employees.filter(
-    (employee) => employee.score < 70
-  ).length;
+      const response = await fetch("http://localhost:5000/api/admin/performance", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to load performance metrics");
+      }
+
+      setEmployees(data.employees || []);
+      if (data.overview) {
+        setStats(data.overview);
+      }
+    } catch (err) {
+      console.error("Admin Performance Fetch Error:", err);
+      setError(err.message || "Could not load performance records.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPerformanceData();
+  }, []);
+
+  // Filter list
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch =
+      search === "" ||
+      emp.name?.toLowerCase().includes(search.toLowerCase()) ||
+      emp.employeeId?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesDept =
+      department === "All Departments" || emp.department === department;
+
+    return matchesSearch && matchesDept;
+  });
+
+  const departmentsList = [
+    "All Departments",
+    ...Array.from(new Set(employees.map((e) => e.department).filter(Boolean))),
+  ];
 
   const getScoreClass = (score) => {
-    if (score >= 85) {
-      return "text-green-400";
-    }
-
-    if (score >= 70) {
-      return "text-yellow-400";
-    }
-
-    return "text-red-400";
+    if (score >= 8.5) return "text-emerald-600";
+    if (score >= 7.0) return "text-blue-600";
+    if (score >= 5.5) return "text-yellow-600";
+    return "text-red-600";
   };
 
   const getProgressClass = (score) => {
-    if (score >= 85) {
-      return "bg-green-500";
-    }
-
-    if (score >= 70) {
-      return "bg-yellow-500";
-    }
-
+    if (score >= 8.5) return "bg-emerald-500";
+    if (score >= 7.0) return "bg-blue-500";
+    if (score >= 5.5) return "bg-yellow-500";
     return "bg-red-500";
   };
 
   const getStatusClass = (status) => {
-    if (status === "Excellent") {
-      return "bg-green-500/10 text-green-400 border-green-500/20";
+    switch (status) {
+      case "Excellent":
+      case "Top Performer":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "Good":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "Average":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "Needs Improvement":
+      case "Needs Attention":
+        return "bg-red-50 text-red-700 border-red-200";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-200";
     }
-
-    if (status === "Good") {
-      return "bg-blue-500/10 text-blue-400 border-blue-500/20";
-    }
-
-    if (status === "Average") {
-      return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
-    }
-
-    return "bg-red-500/10 text-red-400 border-red-500/20";
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-100 text-slate-900">
       <AdminSidebar />
 
-      <main className="ml-64 min-h-screen p-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white">
-              Performance Management
-            </h1>
-
-            <p className="text-slate-400 mt-1">
-              Monitor and evaluate employee performance
-            </p>
-          </div>
-
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition">
-            <BarChart3 size={18} />
-            Performance Report
-          </button>
-        </div>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
-          {/* Total Employees */}
-          <div className="bg-slate-900 border border-white/10 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-400 text-sm">
-                  Employees Evaluated
-                </p>
-
-                <h2 className="text-3xl font-bold mt-2">
-                  {totalEmployees}
-                </h2>
-              </div>
-
-              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Users className="text-blue-400" size={24} />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 text-green-400 text-sm">
-              <TrendingUp size={16} />
-              <span>12% from last month</span>
-            </div>
-          </div>
-
-          {/* Average Score */}
-          <div className="bg-slate-900 border border-white/10 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-400 text-sm">
-                  Average Performance
-                </p>
-
-                <h2 className="text-3xl font-bold mt-2">
-                  {averageScore}%
-                </h2>
-              </div>
-
-              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <Target className="text-purple-400" size={24} />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 text-green-400 text-sm">
-              <TrendingUp size={16} />
-              <span>5.4% improvement</span>
-            </div>
-          </div>
-
-          {/* Top Performers */}
-          <div className="bg-slate-900 border border-white/10 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-400 text-sm">
-                  Top Performers
-                </p>
-
-                <h2 className="text-3xl font-bold mt-2">
-                  {excellentPerformers}
-                </h2>
-              </div>
-
-              <div className="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                <Award className="text-yellow-400" size={24} />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 text-yellow-400 text-sm">
-              <Star size={16} />
-              <span>85%+ performance score</span>
-            </div>
-          </div>
-
-          {/* Needs Improvement */}
-          <div className="bg-slate-900 border border-white/10 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-400 text-sm">
-                  Needs Improvement
-                </p>
-
-                <h2 className="text-3xl font-bold mt-2">
-                  {needsImprovement}
-                </h2>
-              </div>
-
-              <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center">
-                <TrendingDown className="text-red-400" size={24} />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4 text-red-400 text-sm">
-              <TrendingDown size={16} />
-              <span>Below 70%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Overview */}
-        <div className="bg-slate-900 border border-white/10 rounded-xl p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
+      <main className="ml-64 min-h-screen">
+        {/* Sticky Header */}
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+          <div className="flex h-20 items-center justify-between px-6 lg:px-8">
             <div>
-              <h2 className="text-xl font-semibold">
-                Performance Overview
-              </h2>
-
-              <p className="text-slate-400 text-sm mt-1">
-                Current employee performance distribution
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Admin / Performance Analytics
               </p>
+              <h1 className="mt-0.5 text-xl font-bold text-slate-900">
+                Performance Evaluation & Scoring
+              </h1>
             </div>
 
-            <BarChart3 className="text-blue-400" size={24} />
+            <div className="flex items-center gap-3">
+              <button
+                onClick={fetchPerformanceData}
+                disabled={loading}
+                className="flex items-center gap-2 px-3.5 py-2 bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-xl text-sm font-semibold text-slate-700 transition disabled:opacity-50"
+              >
+                <RefreshCw size={15} className={loading ? "animate-spin text-blue-600" : ""} />
+                <span>Refresh Metrics</span>
+              </button>
+            </div>
           </div>
+        </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Excellent */}
-            <div className="border border-white/10 rounded-lg p-5">
-              <div className="flex justify-between mb-3">
-                <span className="text-slate-300">
-                  Excellent
-                </span>
+        {/* Page Content */}
+        <div className="p-6 lg:p-8 space-y-7">
+          {/* Error Alert */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 font-medium flex items-center gap-3">
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
 
-                <span className="text-green-400 font-semibold">
-                  85% - 100%
-                </span>
+          {/* Statistics 4-Card Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* Total Evaluated */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    Employees Evaluated
+                  </p>
+                  <h2 className="text-3xl font-bold mt-1 text-slate-900">
+                    {stats.totalEvaluated}
+                  </h2>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                  <Users size={22} />
+                </div>
               </div>
-
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-full"
-                  style={{
-                    width: `${
-                      totalEmployees
-                        ? (excellentPerformers / totalEmployees) * 100
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-              </div>
-
-              <p className="text-slate-500 text-sm mt-3">
-                {excellentPerformers} employees
-              </p>
+              <p className="text-xs text-slate-400 mt-2">All active team members</p>
             </div>
 
-            {/* Good */}
-            <div className="border border-white/10 rounded-lg p-5">
-              <div className="flex justify-between mb-3">
-                <span className="text-slate-300">
-                  Good
-                </span>
-
-                <span className="text-yellow-400 font-semibold">
-                  70% - 84%
-                </span>
+            {/* Average Score */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    Avg Org Score
+                  </p>
+                  <h2 className="text-3xl font-bold mt-1 text-purple-700">
+                    {stats.averageScore} <span className="text-sm text-slate-400 font-normal">/ 10</span>
+                  </h2>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+                  <Target size={22} />
+                </div>
               </div>
+              <p className="text-xs text-purple-700 font-medium mt-2">{stats.averagePercentage}% organizational score</p>
+            </div>
 
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-yellow-500 rounded-full"
-                  style={{
-                    width: `${
-                      totalEmployees
-                        ? (employees.filter(
-                            (employee) =>
-                              employee.score >= 70 &&
-                              employee.score < 85
-                          ).length /
-                            totalEmployees) *
-                          100
-                        : 0
-                    }%`,
-                  }}
-                ></div>
+            {/* Top Performers */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    Top Performers
+                  </p>
+                  <h2 className="text-3xl font-bold mt-1 text-emerald-600">
+                    {stats.excellentCount}
+                  </h2>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Award size={22} />
+                </div>
               </div>
-
-              <p className="text-slate-500 text-sm mt-3">
-                {
-                  employees.filter(
-                    (employee) =>
-                      employee.score >= 70 &&
-                      employee.score < 85
-                  ).length
-                }{" "}
-                employees
-              </p>
+              <p className="text-xs text-emerald-600 font-medium mt-2">Score ≥ 8.5 / 10</p>
             </div>
 
             {/* Needs Improvement */}
-            <div className="border border-white/10 rounded-lg p-5">
-              <div className="flex justify-between mb-3">
-                <span className="text-slate-300">
-                  Needs Improvement
-                </span>
-
-                <span className="text-red-400 font-semibold">
-                  Below 70%
-                </span>
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">
+                    Needs Attention
+                  </p>
+                  <h2 className="text-3xl font-bold mt-1 text-red-600">
+                    {stats.needsImprovementCount}
+                  </h2>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-red-600">
+                  <TrendingDown size={22} />
+                </div>
               </div>
-
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-red-500 rounded-full"
-                  style={{
-                    width: `${
-                      totalEmployees
-                        ? (needsImprovement / totalEmployees) * 100
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-              </div>
-
-              <p className="text-slate-500 text-sm mt-3">
-                {needsImprovement} employees
-              </p>
+              <p className="text-xs text-red-600 font-medium mt-2">Score &lt; 5.5 / 10</p>
             </div>
           </div>
-        </div>
 
-        {/* Employee Performance */}
-        <div className="bg-slate-900 border border-white/10 rounded-xl">
-          {/* Table Header */}
-          <div className="p-6 border-b border-white/10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          {/* Performance Table Section */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            {/* Table Filter Controls */}
+            <div className="p-5 sm:p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold">
-                  Employee Performance
-                </h2>
-
-                <p className="text-slate-400 text-sm mt-1">
-                  Review individual employee performance
+                <h3 className="text-lg font-bold text-slate-900">
+                  Employee Performance Scores
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Calculated dynamically from approved task completions, on-time rate, and attendance
                 </p>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {/* Search */}
-                <div className="relative">
+                <div className="relative flex-1 sm:w-64">
                   <Search
-                    size={18}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                    size={15}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                   />
-
                   <input
                     type="text"
-                    placeholder="Search employee..."
+                    placeholder="Search employee or ID..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full sm:w-64 bg-slate-800 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white transition"
                   />
                 </div>
 
-                {/* Department */}
-                <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="bg-slate-800 border border-white/10 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-500"
-                >
-                  {departments.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
+                {/* Department Dropdown */}
+                <div className="relative">
+                  <select
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    className="appearance-none bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-8 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:bg-white transition"
+                  >
+                    {departmentsList.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10 text-left">
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Employee
-                  </th>
-
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Department
-                  </th>
-
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Performance
-                  </th>
-
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Goals
-                  </th>
-
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Attendance
-                  </th>
-
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Status
-                  </th>
-
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredEmployees.map((employee) => (
-                  <tr
-                    key={employee.id}
-                    className="border-b border-white/5 hover:bg-white/[0.03] transition"
-                  >
-                    {/* Employee */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center font-semibold">
-                          {employee.name.charAt(0)}
-                        </div>
-
-                        <div>
-                          <p className="font-medium text-white">
-                            {employee.name}
-                          </p>
-
-                          <p className="text-xs text-slate-500">
-                            {employee.employeeId}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Department */}
-                    <td className="px-6 py-4">
-                      <p className="text-sm text-slate-300">
-                        {employee.department}
-                      </p>
-
-                      <p className="text-xs text-slate-500">
-                        {employee.position}
-                      </p>
-                    </td>
-
-                    {/* Performance */}
-                    <td className="px-6 py-4 min-w-[180px]">
-                      <div className="flex items-center justify-between mb-2">
-                        <span
-                          className={`font-semibold ${getScoreClass(
-                            employee.score
-                          )}`}
-                        >
-                          {employee.score}%
-                        </span>
-                      </div>
-
-                      <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${getProgressClass(
-                            employee.score
-                          )}`}
-                          style={{
-                            width: `${employee.score}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </td>
-
-                    {/* Goals */}
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-300">
-                        {employee.goals}%
-                      </span>
-                    </td>
-
-                    {/* Attendance */}
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-300">
-                        {employee.attendance}%
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex px-3 py-1 rounded-full border text-xs font-medium ${getStatusClass(
-                          employee.status
-                        )}`}
-                      >
-                        {employee.status}
-                      </span>
-                    </td>
-
-                    {/* Action */}
-                    <td className="px-6 py-4">
-                      <button
-                        className="flex items-center gap-2 text-blue-400 hover:text-blue-300 text-sm"
-                        onClick={() =>
-                          alert(
-                            `Performance details for ${employee.name}`
-                          )
-                        }
-                      >
-                        <Eye size={16} />
-                        View
-                      </button>
-                    </td>
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <th className="px-6 py-4">Employee</th>
+                    <th className="px-6 py-4">Department & Role</th>
+                    <th className="px-6 py-4">Performance Score</th>
+                    <th className="px-6 py-4">Task Completion</th>
+                    <th className="px-6 py-4">Attendance Rate</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
 
-            {filteredEmployees.length === 0 && (
-              <div className="py-12 text-center">
-                <Users
-                  size={40}
-                  className="mx-auto text-slate-600 mb-3"
-                />
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-14 text-center text-slate-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <RefreshCw size={20} className="animate-spin text-blue-600" />
+                          <span>Computing live employee performance...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="px-6 py-14 text-center text-slate-500">
+                        <Users size={38} className="mx-auto mb-2 text-slate-400" />
+                        <p className="text-base font-semibold text-slate-700">
+                          No employees found
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Try adjusting your search criteria or department filter.
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEmployees.map((employee) => (
+                      <tr
+                        key={employee.id || employee._id}
+                        className="hover:bg-slate-50/80 transition-colors"
+                      >
+                        {/* Employee */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm border border-blue-200">
+                              {employee.name?.charAt(0).toUpperCase() || "E"}
+                            </div>
+                            <div>
+                              <p className="font-bold text-slate-900">
+                                {employee.name}
+                              </p>
+                              <p className="text-xs text-slate-400 font-mono">
+                                {employee.employeeId}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
 
-                <p className="text-slate-400">
-                  No employees found
-                </p>
-              </div>
-            )}
+                        {/* Department */}
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-slate-800 font-semibold">
+                            {employee.department}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {employee.position}
+                          </p>
+                        </td>
+
+                        {/* Performance */}
+                        <td className="px-6 py-4 min-w-[180px]">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className={`font-bold text-sm ${getScoreClass(employee.score)}`}>
+                              {employee.score} <span className="text-xs text-slate-400 font-normal">/ 10</span>
+                            </span>
+                            <span className="text-xs text-slate-500 font-medium">
+                              {employee.percentage}%
+                            </span>
+                          </div>
+
+                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                            <div
+                              className={`h-full rounded-full ${getProgressClass(employee.score)}`}
+                              style={{ width: `${Math.min(100, employee.percentage)}%` }}
+                            />
+                          </div>
+                        </td>
+
+                        {/* Task Completion */}
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-bold text-slate-800">
+                            {employee.goals}%
+                          </span>
+                          <p className="text-[11px] text-slate-400">
+                            {employee.completedTasks}/{employee.totalTasks} completed
+                          </p>
+                        </td>
+
+                        {/* Attendance */}
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-bold text-slate-800">
+                            {employee.attendance}%
+                          </span>
+                          <p className="text-[11px] text-slate-400">
+                            Active presence
+                          </p>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex px-3 py-1 rounded-full border text-xs font-bold ${getStatusClass(
+                              employee.status
+                            )}`}
+                          >
+                            {employee.status}
+                          </span>
+                        </td>
+
+                        {/* Action */}
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => setSelectedEmployee(employee)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition"
+                          >
+                            <Eye size={14} />
+                            <span>View Details</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Performance Details Modal */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-200 pb-4 mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 text-lg font-bold">
+                  {selectedEmployee.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {selectedEmployee.name}
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {selectedEmployee.employeeId} • {selectedEmployee.department} ({selectedEmployee.position})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Score Card */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                  Overall Performance Score
+                </p>
+                <h4 className="text-3xl font-extrabold text-slate-900 mt-1">
+                  {selectedEmployee.score} <span className="text-sm font-normal text-slate-400">/ 10</span>
+                </h4>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Evaluation: <span className="font-bold text-slate-800">{selectedEmployee.status}</span>
+                </p>
+              </div>
+              <span
+                className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${getStatusClass(
+                  selectedEmployee.status
+                )}`}
+              >
+                {selectedEmployee.status}
+              </span>
+            </div>
+
+            {/* KPI Metrics */}
+            <div className="space-y-4">
+              {/* Task Completion */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-slate-700 font-bold">Task Delivery & Completion</span>
+                  <span className="font-bold text-emerald-600">{selectedEmployee.goals}%</span>
+                </div>
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500 rounded-full"
+                    style={{ width: `${selectedEmployee.goals}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
+                  {selectedEmployee.completedTasks} completed out of {selectedEmployee.totalTasks} assigned tasks
+                </p>
+              </div>
+
+              {/* On-Time Delivery */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-slate-700 font-bold">On-Time Delivery Precision</span>
+                  <span className="font-bold text-blue-600">{selectedEmployee.onTimeRate || 100}%</span>
+                </div>
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full"
+                    style={{ width: `${selectedEmployee.onTimeRate || 100}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
+                  Deliverables completed on or before target deadline
+                </p>
+              </div>
+
+              {/* Attendance */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-slate-700 font-bold">Attendance Regularity</span>
+                  <span className="font-bold text-purple-600">{selectedEmployee.attendance}%</span>
+                </div>
+                <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-purple-500 rounded-full"
+                    style={{ width: `${selectedEmployee.attendance}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1.5 font-medium">
+                  Consistent on-time logged presence rate
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setSelectedEmployee(null)}
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition"
+              >
+                Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

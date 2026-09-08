@@ -47,4 +47,4 @@ const attendanceSchema = new mongoose.Schema(
 
 attendanceSchema.index({ employee: 1, dateString: 1 }, { unique: true });
 
-module.exports = mongoose.model("Attendance", attendanceSchema);
+module.exports = mongoose.models.Attendance || mongoose.model("Attendance", attendanceSchema);

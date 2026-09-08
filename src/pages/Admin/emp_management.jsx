@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import { getAdminToken } from "../../utils/auth";
 
 import {
   Users,
@@ -63,6 +64,23 @@ const Admin_emp_managment = () => {
   const [resettingPassword, setResettingPassword] =
     useState(false);
 
+  // View & Edit Modals
+  const [viewEmployee, setViewEmployee] = useState(null);
+  const [editEmployee, setEditEmployee] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    department: "",
+    position: "",
+    status: "Active",
+    employmentType: "Full Time",
+    address: "",
+    city: "",
+    state: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // =====================================================
   // API URL
   // =====================================================
@@ -79,8 +97,7 @@ const Admin_emp_managment = () => {
       setLoading(true);
       setError("");
 
-      const token =
-        localStorage.getItem("token");
+      const token = getAdminToken();
 
       if (!token) {
         navigate("/login");
@@ -152,8 +169,7 @@ const Admin_emp_managment = () => {
     }
 
     try {
-      const token =
-        localStorage.getItem("token");
+      const token = getAdminToken();
 
       const response =
         await fetch(
@@ -222,8 +238,7 @@ const Admin_emp_managment = () => {
     try {
       setResettingPassword(true);
 
-      const token =
-        localStorage.getItem("token");
+      const token = getAdminToken();
 
       const response =
         await fetch(
@@ -308,6 +323,66 @@ const Admin_emp_managment = () => {
     setTemporaryPassword("");
     setSelectedEmployee(null);
     setCopied(false);
+  };
+
+  // =====================================================
+  // OPEN EDIT MODAL
+  // =====================================================
+  const handleOpenEdit = (employee) => {
+    setEditEmployee(employee);
+    setEditForm({
+      name: employee.name || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
+      department: employee.department || "Development",
+      position: employee.position || "",
+      status: employee.status || "Active",
+      employmentType: employee.employmentType || "Full Time",
+      address: employee.address || "",
+      city: employee.city || "",
+      state: employee.state || "",
+    });
+  };
+
+  // =====================================================
+  // SAVE EDIT EMPLOYEE
+  // =====================================================
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editEmployee) return;
+
+    try {
+      setSavingEdit(true);
+      const token = getAdminToken();
+
+      const response = await fetch(`${API_URL}/${editEmployee.employeeId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update employee");
+      }
+
+      setEmployees((prev) =>
+        prev.map((emp) =>
+          emp.employeeId === editEmployee.employeeId ? { ...emp, ...data.employee } : emp
+        )
+      );
+
+      setEditEmployee(null);
+      alert("Employee updated successfully!");
+    } catch (err) {
+      alert(err.message || "Error updating employee");
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   // =====================================================
@@ -1066,11 +1141,7 @@ const Admin_emp_managment = () => {
 
                               <button
                                 title="View Employee"
-                                onClick={() =>
-                                  navigate(
-                                    `/admin/employees/${employee.employeeId}`
-                                  )
-                                }
+                                onClick={() => setViewEmployee(employee)}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
                               >
 
@@ -1084,11 +1155,7 @@ const Admin_emp_managment = () => {
 
                               <button
                                 title="Edit Employee"
-                                onClick={() =>
-                                  navigate(
-                                    `/admin/employees/edit/${employee.employeeId}`
-                                  )
-                                }
+                                onClick={() => handleOpenEdit(employee)}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                               >
 
@@ -1368,6 +1435,256 @@ const Admin_emp_managment = () => {
 
         </div>
 
+      )}
+
+      {/* =====================================================
+          VIEW EMPLOYEE MODAL
+      ===================================================== */}
+      {viewEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-lg font-bold text-blue-600">
+                  {viewEmployee.name?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">{viewEmployee.name}</h3>
+                  <p className="text-xs text-slate-500 font-mono">{viewEmployee.employeeId}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewEmployee(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Profile Grid */}
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Department</p>
+                  <p className="font-semibold text-slate-800 mt-0.5">{viewEmployee.department || "-"}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Position / Role</p>
+                  <p className="font-semibold text-slate-800 mt-0.5">{viewEmployee.position || "-"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Email</p>
+                  <p className="font-medium text-slate-800 mt-0.5 truncate">{viewEmployee.email || "-"}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Phone</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{viewEmployee.phone || "-"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Status</p>
+                  <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                    viewEmployee.status === "Active" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"
+                  }`}>
+                    {viewEmployee.status || "Active"}
+                  </span>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Employment Type</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{viewEmployee.employmentType || "Full Time"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Joining Date</p>
+                  <p className="font-medium text-slate-800 mt-0.5">{formatDate(viewEmployee.joiningDate)}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Performance Score</p>
+                  <p className="font-bold text-blue-600 mt-0.5">{viewEmployee.performanceScore ?? 0} / 10</p>
+                </div>
+              </div>
+
+              {(viewEmployee.address || viewEmployee.city || viewEmployee.state) && (
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs text-slate-400 font-medium">Address</p>
+                  <p className="font-medium text-slate-800 mt-0.5">
+                    {[viewEmployee.address, viewEmployee.city, viewEmployee.state].filter(Boolean).join(", ")}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={() => setViewEmployee(null)}
+                className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          EDIT EMPLOYEE MODAL
+      ===================================================== */}
+      {editEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 backdrop-blur-sm overflow-y-auto py-8">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl my-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4 mb-5">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Edit Employee</h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  {editEmployee.employeeId} • {editEmployee.name}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditEmployee(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Department</label>
+                  <select
+                    value={editForm.department}
+                    onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  >
+                    <option>Development</option>
+                    <option>IT</option>
+                    <option>Marketing</option>
+                    <option>HR</option>
+                    <option>Sales</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Position / Role</label>
+                  <input
+                    type="text"
+                    value={editForm.position}
+                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                    required
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Employment Type</label>
+                  <select
+                    value={editForm.employmentType}
+                    onChange={(e) => setEditForm({ ...editForm, employmentType: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  >
+                    <option value="Full Time">Full Time</option>
+                    <option value="Part Time">Part Time</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Intern">Intern</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Address</label>
+                  <input
+                    type="text"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditEmployee(null)}
+                  className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 shadow-md shadow-blue-600/20 transition disabled:opacity-50"
+                >
+                  {savingEdit ? (
+                    <>
+                      <RefreshCw size={15} className="animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={15} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

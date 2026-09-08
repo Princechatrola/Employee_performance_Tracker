@@ -14,15 +14,14 @@ import {
   ArrowRight,
   TrendingUp,
 } from "lucide-react";
+import { logoutAdmin } from "../../utils/auth";
 
 const AdminSidebar = () => {
   const navigate = useNavigate();
 
   // Logout
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
+    logoutAdmin();
     navigate("/login");
   };
 

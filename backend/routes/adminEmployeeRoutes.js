@@ -2,7 +2,9 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 
-const User = require("../models/User");
+const User = require("../models/user");
+const Task = require("../models/task");
+const Attendance = require("../models/attendance");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
 const router = express.Router();
@@ -220,6 +222,135 @@ router.post(
       res.status(500).json({
         success: false,
         message: "Failed to create employee",
+      });
+    }
+  }
+);
+
+// =====================================================
+// GET SINGLE EMPLOYEE
+// GET /api/admin/employees/:employeeId
+// =====================================================
+
+router.get(
+  "/employees/:employeeId",
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const employee = await User.findOne({
+        employeeId: req.params.employeeId,
+        role: "employee",
+      }).select("-password");
+
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        employee,
+      });
+    } catch (error) {
+      console.error("Get Single Employee Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch employee details",
+      });
+    }
+  }
+);
+
+// =====================================================
+// UPDATE EMPLOYEE
+// PUT /api/admin/employees/:employeeId
+// =====================================================
+
+router.put(
+  "/employees/:employeeId",
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const {
+        name,
+        email,
+        phone,
+        dateOfBirth,
+        gender,
+        department,
+        position,
+        joiningDate,
+        employmentType,
+        address,
+        city,
+        state,
+        status,
+        performanceScore,
+      } = req.body;
+
+      const employee = await User.findOne({
+        employeeId: req.params.employeeId,
+        role: "employee",
+      });
+
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found",
+        });
+      }
+
+      // Check email uniqueness if email is changed
+      if (email && email.toLowerCase().trim() !== employee.email) {
+        const existingUser = await User.findOne({
+          email: email.toLowerCase().trim(),
+          _id: { $ne: employee._id },
+        });
+
+        if (existingUser) {
+          return res.status(409).json({
+            success: false,
+            message: "Email is already taken by another user",
+          });
+        }
+        employee.email = email.toLowerCase().trim();
+      }
+
+      if (name) employee.name = name.trim();
+      if (phone) employee.phone = phone.trim();
+      if (dateOfBirth) employee.dateOfBirth = dateOfBirth;
+      if (gender) employee.gender = gender;
+      if (department) employee.department = department.trim();
+      if (position) employee.position = position.trim();
+      if (joiningDate) employee.joiningDate = joiningDate;
+      if (employmentType) employee.employmentType = employmentType;
+      if (address !== undefined) employee.address = address;
+      if (city !== undefined) employee.city = city;
+      if (state !== undefined) employee.state = state;
+      if (status && ["Active", "Inactive"].includes(status)) {
+        employee.status = status;
+      }
+      if (performanceScore !== undefined) {
+        employee.performanceScore = Math.min(10, Math.max(0, Number(performanceScore)));
+      }
+
+      await employee.save();
+
+      const employeeResponse = employee.toObject();
+      delete employeeResponse.password;
+
+      res.status(200).json({
+        success: true,
+        message: "Employee updated successfully",
+        employee: employeeResponse,
+      });
+    } catch (error) {
+      console.error("Update Employee Error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update employee",
       });
     }
   }

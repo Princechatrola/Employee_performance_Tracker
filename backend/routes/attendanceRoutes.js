@@ -1,6 +1,8 @@
 const express = require("express");
 const Attendance = require("../models/attendance");
+const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ const getTodayDateString = (d = new Date()) => {
 };
 
 /* =====================================================
-   GET TODAY'S ATTENDANCE STATUS
+   GET TODAY'S ATTENDANCE STATUS (EMPLOYEE)
    GET /api/attendance/today
 ===================================================== */
 router.get("/today", authMiddleware, async (req, res) => {
@@ -208,6 +210,202 @@ router.get("/my-attendance", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load attendance history.",
+    });
+  }
+});
+
+/* =====================================================
+   ADMIN: GET ALL ATTENDANCE RECORDS & SUMMARY
+   GET /api/attendance/admin/all OR /api/admin/attendance
+===================================================== */
+const handleAdminAttendance = async (req, res) => {
+  try {
+    const { date, department, status, search } = req.query;
+
+    const targetDateStr = date || getTodayDateString();
+
+    // Fetch all active employees
+    const allEmployees = await User.find({ role: "employee" })
+      .select("name email employeeId department position status")
+      .sort({ name: 1 });
+
+    // Fetch attendance records for target date
+    const dayRecords = await Attendance.find({ dateString: targetDateStr })
+      .populate("employee", "name email employeeId department position status");
+
+    // Build complete record list (including employees who have not marked attendance as Absent)
+    let combinedList = allEmployees.map((emp) => {
+      const existing = dayRecords.find(
+        (r) =>
+          (r.employee && r.employee._id.toString() === emp._id.toString()) ||
+          (r.employeeId && emp.employeeId && r.employeeId.toLowerCase() === emp.employeeId.toLowerCase())
+      );
+
+      if (existing) {
+        return {
+          _id: existing._id,
+          employee: {
+            _id: emp._id,
+            name: emp.name,
+            email: emp.email,
+            employeeId: emp.employeeId,
+            department: emp.department,
+            position: emp.position,
+            status: emp.status,
+          },
+          employeeId: emp.employeeId,
+          date: existing.date,
+          dateString: existing.dateString,
+          checkIn: existing.checkIn,
+          checkOut: existing.checkOut,
+          workingHours: existing.workingHours || 0,
+          status: existing.status,
+          notes: existing.notes || "",
+          hasRecord: true,
+        };
+      }
+
+      return {
+        _id: `absent_${emp._id}`,
+        employee: {
+          _id: emp._id,
+          name: emp.name,
+          email: emp.email,
+          employeeId: emp.employeeId,
+          department: emp.department,
+          position: emp.position,
+          status: emp.status,
+        },
+        employeeId: emp.employeeId,
+        date: new Date(targetDateStr),
+        dateString: targetDateStr,
+        checkIn: null,
+        checkOut: null,
+        workingHours: 0,
+        status: "Absent",
+        notes: "Not marked yet",
+        hasRecord: false,
+      };
+    });
+
+    // Summary statistics
+    const totalStaff = combinedList.length;
+    const presentCount = combinedList.filter((r) => r.status === "Present").length;
+    const lateCount = combinedList.filter((r) => r.status === "Late").length;
+    const halfDayCount = combinedList.filter((r) => r.status === "Half Day").length;
+    const absentCount = combinedList.filter((r) => r.status === "Absent").length;
+
+    const totalPresentOrLate = presentCount + lateCount + halfDayCount;
+    const attendancePercentage =
+      totalStaff > 0 ? Math.round((totalPresentOrLate / totalStaff) * 100) : 100;
+
+    // Apply filters
+    if (department && department !== "All Departments" && department !== "All") {
+      combinedList = combinedList.filter(
+        (r) => r.employee?.department === department
+      );
+    }
+
+    if (status && status !== "All Status" && status !== "All") {
+      combinedList = combinedList.filter((r) => r.status === status);
+    }
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      combinedList = combinedList.filter(
+        (r) =>
+          r.employee?.name?.toLowerCase().includes(q) ||
+          r.employee?.employeeId?.toLowerCase().includes(q) ||
+          r.employee?.email?.toLowerCase().includes(q) ||
+          r.employee?.department?.toLowerCase().includes(q)
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      date: targetDateStr,
+      summary: {
+        totalStaff,
+        presentCount,
+        lateCount,
+        halfDayCount,
+        absentCount,
+        attendancePercentage,
+      },
+      records: combinedList,
+    });
+  } catch (error) {
+    console.error("Admin Attendance Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load admin attendance records.",
+    });
+  }
+};
+
+router.get("/admin/all", adminMiddleware, handleAdminAttendance);
+router.get("/admin/attendance", adminMiddleware, handleAdminAttendance);
+router.get("/admin-records", adminMiddleware, handleAdminAttendance);
+
+/* =====================================================
+   ADMIN: UPDATE ATTENDANCE STATUS / NOTES
+   PATCH /api/attendance/admin/:id/status
+===================================================== */
+router.patch("/admin/:id/status", adminMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes, employeeId, dateString } = req.body;
+
+    let record;
+    if (id.startsWith("absent_") || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      // Create a record if employee was previously unmarked (Absent)
+      const emp = await User.findOne({
+        $or: [{ employeeId }, { _id: id.replace("absent_", "") }],
+      });
+
+      if (!emp) {
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found.",
+        });
+      }
+
+      const dStr = dateString || getTodayDateString();
+      const now = new Date();
+
+      record = new Attendance({
+        employee: emp._id,
+        employeeId: emp.employeeId || "",
+        date: new Date(dStr),
+        dateString: dStr,
+        checkIn: status !== "Absent" ? now : null,
+        status: status || "Present",
+        notes: notes || "Marked by Admin",
+      });
+      await record.save();
+    } else {
+      record = await Attendance.findById(id);
+      if (!record) {
+        return res.status(404).json({
+          success: false,
+          message: "Attendance record not found.",
+        });
+      }
+      if (status) record.status = status;
+      if (notes !== undefined) record.notes = notes;
+      await record.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Attendance updated successfully.",
+      record,
+    });
+  } catch (error) {
+    console.error("Admin Update Attendance Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update attendance.",
     });
   }
 });

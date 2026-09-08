@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import EmployeeSidebar from "../../components/Employee/EmployeeSidebar";
+import { getEmployeeToken, logoutEmployee } from "../../utils/auth";
 import {
   ClipboardList,
   CheckCircle2,
@@ -52,7 +53,7 @@ const EmployeeDashboard = () => {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token = getEmployeeToken();
 
       if (!token) {
         navigate("/login");
@@ -75,8 +76,7 @@ const EmployeeDashboard = () => {
 
       if (!response.ok) {
         if (response.status === 401) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
+          logoutEmployee();
           navigate("/login");
           return;
         }
@@ -114,6 +114,7 @@ const EmployeeDashboard = () => {
       icon: ClipboardList,
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600",
+      link: "/EmployeeTasks",
     },
     {
       title: "Completed",
@@ -122,6 +123,7 @@ const EmployeeDashboard = () => {
       icon: CheckCircle2,
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600",
+      link: "/EmployeeTasks",
     },
     {
       title: "Pending Tasks",
@@ -130,6 +132,7 @@ const EmployeeDashboard = () => {
       icon: Clock3,
       iconBg: "bg-yellow-50",
       iconColor: "text-yellow-600",
+      link: "/EmployeeTasks",
     },
     {
       title: "Performance",
@@ -138,6 +141,7 @@ const EmployeeDashboard = () => {
       icon: TrendingUp,
       iconBg: "bg-purple-50",
       iconColor: "text-purple-600",
+      link: "/employee/performance",
     },
   ];
 
@@ -307,13 +311,14 @@ const EmployeeDashboard = () => {
                   const Icon = stat.icon;
 
                   return (
-                    <div
+                    <Link
+                      to={stat.link || "#"}
                       key={stat.title}
-                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+                      className="group block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md hover:border-slate-300"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-slate-500">
+                          <p className="text-sm font-medium text-slate-500 group-hover:text-blue-600 transition">
                             {stat.title}
                           </p>
                           <h3 className="mt-2 text-2xl font-bold text-slate-900">
@@ -322,16 +327,19 @@ const EmployeeDashboard = () => {
                         </div>
 
                         <div
-                          className={`flex h-11 w-11 items-center justify-center rounded-xl ${stat.iconBg}`}
+                          className={`flex h-11 w-11 items-center justify-center rounded-xl transition group-hover:scale-105 ${stat.iconBg}`}
                         >
                           <Icon size={21} className={stat.iconColor} />
                         </div>
                       </div>
 
-                      <p className="mt-4 text-xs text-slate-500">
-                        {stat.description}
+                      <p className="mt-4 text-xs text-slate-500 flex items-center justify-between">
+                        <span>{stat.description}</span>
+                        <span className="text-[11px] font-semibold text-blue-600 opacity-0 group-hover:opacity-100 transition">
+                          View →
+                        </span>
                       </p>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -457,6 +465,8 @@ const EmployeeDashboard = () => {
                                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                                       task.status === "Completed"
                                         ? "bg-emerald-50 text-emerald-600"
+                                        : task.status === "Under Review"
+                                        ? "bg-purple-50 text-purple-600 border border-purple-200"
                                         : task.status === "In Progress"
                                         ? "bg-blue-50 text-blue-600"
                                         : "bg-slate-100 text-slate-600"

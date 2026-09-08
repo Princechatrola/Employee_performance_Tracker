@@ -31,33 +31,37 @@ mongoose
   });
 
 // =========================
-// AUTH ROUTES
+// ROUTE HANDLERS
 // =========================
 
 const authRoutes = require("./routes/authRoutes");
+const adminEmployeeRoutes = require("./routes/adminEmployeeRoutes");
+const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
+const taskRoutes = require("./routes/taskRoutes");
+const employeeDashboardRoutes = require("./routes/employeeDashboardRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+
+// =========================
+// AUTH ROUTES
+// =========================
 app.use("/api/auth", authRoutes);
 
 // =========================
 // ADMIN ROUTES
 // =========================
-
-const adminEmployeeRoutes = require("./routes/adminEmployeeRoutes");
-const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
-const taskRoutes = require("./routes/taskRoutes");
-
 app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/admin", adminEmployeeRoutes);
 app.use("/api/admin", taskRoutes);
+app.use("/api/admin", attendanceRoutes);
 
 // =========================
-// EMPLOYEE ROUTES
+// EMPLOYEE & COMMON ROUTES
 // =========================
-
-const employeeDashboardRoutes = require("./routes/employeeDashboardRoutes");
-const attendanceRoutes = require("./routes/attendanceRoutes");
-const notificationRoutes = require("./routes/notificationRoutes");
-
 app.use("/api/employee", employeeDashboardRoutes);
+app.use("/api/employee/attendance", attendanceRoutes);
+app.use("/api/employee/tasks", taskRoutes);
+app.use("/api/employee/notifications", notificationRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/notifications", notificationRoutes);

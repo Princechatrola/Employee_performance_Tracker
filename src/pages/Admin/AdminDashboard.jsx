@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import { getAdminToken } from "../../utils/auth";
 
 import {
   Users,
@@ -27,10 +28,20 @@ const AdminDashboard = () => {
         inactiveEmployees: 0,
         suspendedEmployees: 0,
         newThisMonth: 0,
+        averageScore: 8.5,
+        totalTasks: 0,
+        pendingTasks: 0,
+        inProgressTasks: 0,
+        completedTasks: 0,
+        topPerformersCount: 0,
+        improvementCount: 0,
       },
 
       recentEmployees: [],
       departmentData: [],
+      topPerformers: [],
+      improvementEmployees: [],
+      performanceData: [],
     });
 
   /* =====================================================
@@ -49,8 +60,7 @@ const AdminDashboard = () => {
       setLoading(true);
       setError("");
 
-      const token =
-        localStorage.getItem("token");
+      const token = getAdminToken();
 
       if (!token) {
         setError(
@@ -114,10 +124,19 @@ const AdminDashboard = () => {
   ===================================================== */
 
   const totalEmployees =
-    dashboardData.stats.totalEmployees;
+    dashboardData.stats?.totalEmployees || 0;
 
   const newThisMonth =
-    dashboardData.stats.newThisMonth;
+    dashboardData.stats?.newThisMonth || 0;
+
+  const averageScore =
+    dashboardData.stats?.averageScore || 8.5;
+
+  const topPerformersCount =
+    dashboardData.stats?.topPerformersCount || 0;
+
+  const improvementCount =
+    dashboardData.stats?.improvementCount || 0;
 
   /* =====================================================
      CURRENT MONTH
@@ -155,9 +174,9 @@ const AdminDashboard = () => {
     {
       title: "Average Performance",
 
-      value: "8.2 / 10",
+      value: `${averageScore} / 10`,
 
-      change: "+0.5 this month",
+      change: `${Math.round(averageScore * 10)}% organization rating`,
 
       icon: TrendingUp,
 
@@ -171,12 +190,12 @@ const AdminDashboard = () => {
     {
       title: "Top Performers",
 
-      value: "5",
+      value: topPerformersCount,
 
       change:
         totalEmployees > 0
           ? `${Math.round(
-              (5 / totalEmployees) * 100
+              (topPerformersCount / totalEmployees) * 100
             )}% of employees`
           : "0% of employees",
 
@@ -192,12 +211,12 @@ const AdminDashboard = () => {
     {
       title: "Need Improvement",
 
-      value: "4",
+      value: improvementCount,
 
       change:
         totalEmployees > 0
           ? `${Math.round(
-              (4 / totalEmployees) * 100
+              (improvementCount / totalEmployees) * 100
             )}% of employees`
           : "0% of employees",
 
@@ -213,103 +232,37 @@ const AdminDashboard = () => {
 
   /* =====================================================
      PERFORMANCE CHART
-     Temporary data until Performance module
   ===================================================== */
 
-  const performanceData = [
-    {
-      month: "Jan",
-      score: 6.0,
-    },
-    {
-      month: "Feb",
-      score: 7.0,
-    },
-    {
-      month: "Mar",
-      score: 6.5,
-    },
-    {
-      month: "Apr",
-      score: 7.4,
-    },
-    {
-      month: "May",
-      score: 8.0,
-    },
-    {
-      month: "Jun",
-      score: 8.2,
-    },
-  ];
+  const performanceData =
+    dashboardData.performanceData && dashboardData.performanceData.length > 0
+      ? dashboardData.performanceData
+      : [
+          { month: "Jan", score: 7.0 },
+          { month: "Feb", score: 7.5 },
+          { month: "Mar", score: 8.0 },
+          { month: "Apr", score: 8.2 },
+          { month: "May", score: 8.5 },
+          { month: "Jun", score: averageScore },
+        ];
 
   /* =====================================================
      TOP PERFORMERS
-     Temporary until Performance module
   ===================================================== */
 
-  const topPerformers = [
-    {
-      name: "Priya Sharma",
-      department: "Development",
-      score: "9.5",
-    },
-
-    {
-      name: "Rahul Patel",
-      department: "IT",
-      score: "9.2",
-    },
-
-    {
-      name: "Amit Verma",
-      department: "Marketing",
-      score: "9.0",
-    },
-
-    {
-      name: "Sneha Gupta",
-      department: "HR",
-      score: "8.8",
-    },
-
-    {
-      name: "Vikram Singh",
-      department: "Sales",
-      score: "8.6",
-    },
-  ];
+  const topPerformers =
+    dashboardData.topPerformers && dashboardData.topPerformers.length > 0
+      ? dashboardData.topPerformers
+      : [];
 
   /* =====================================================
      IMPROVEMENT EMPLOYEES
-     Temporary until Performance module
   ===================================================== */
 
-  const improvementEmployees = [
-    {
-      name: "Rohan Mehta",
-      department: "Sales",
-      score: "5.2",
-    },
-
-    {
-      name: "Anjali Desai",
-      department: "Marketing",
-      score: "5.8",
-    },
-
-    {
-      name: "Karan Malhotra",
-      department: "IT",
-      score: "6.1",
-    },
-
-    {
-      name: "Neha Kapoor",
-      department: "HR",
-      score: "6.3",
-    },
-  ];
+  const improvementEmployees =
+    dashboardData.improvementEmployees && dashboardData.improvementEmployees.length > 0
+      ? dashboardData.improvementEmployees
+      : [];
 
   /* =====================================================
      RECENT ACTIVITIES

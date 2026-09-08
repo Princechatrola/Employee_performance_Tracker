@@ -13,6 +13,7 @@ import AdminEmployees from "./pages/Admin/emp_management";
 import AdminAddEmployee from "./pages/Admin/AddEmployee";
 import AdminPerformance from "./pages/Admin/Performance";
 import AdminAssignTasks from "./pages/Admin/AssignTasks";
+import AdminAttendance from "./pages/Admin/Attendance";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
         <Route path="/admin/AddEmployee" element={<AdminAddEmployee />} />
         <Route path="/admin/performance" element={<AdminPerformance />} />
         <Route path="/admin/tasks" element={<AdminAssignTasks />} />
+        <Route path="/admin/attendance" element={<AdminAttendance />} />
 
       </Routes>
     </BrowserRouter>

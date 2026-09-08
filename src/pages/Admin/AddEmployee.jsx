@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import { getAdminToken } from "../../utils/auth";
 
 import {
   User,
@@ -98,7 +99,7 @@ const AddEmployee = () => {
          GET ADMIN JWT TOKEN
       ================================================ */
 
-      const token = localStorage.getItem("token");
+      const token = getAdminToken();
 
       if (!token) {
         setError(

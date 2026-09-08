@@ -56,8 +56,40 @@ const taskSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Pending", "In Progress", "Completed"],
+      enum: ["Pending", "In Progress", "Under Review", "Completed"],
       default: "Pending",
+    },
+
+    githubRepoUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    submissionGithubUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    submissionNotes: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    submittedAt: {
+      type: Date,
+    },
+
+    adminFeedback: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    reviewedAt: {
+      type: Date,
     },
   },
   {
@@ -65,4 +97,4 @@ const taskSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Task", taskSchema);
+module.exports = mongoose.models.Task || mongoose.model("Task", taskSchema);

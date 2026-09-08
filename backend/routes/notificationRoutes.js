@@ -1,6 +1,6 @@
 const express = require("express");
 const Notification = require("../models/notification");
-const User = require("../models/User");
+const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 

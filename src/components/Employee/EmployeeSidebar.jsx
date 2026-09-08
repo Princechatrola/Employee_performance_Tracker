@@ -9,6 +9,7 @@ import {
   LogOut,
   ArrowUpRight,
 } from "lucide-react";
+import { getEmployeeToken, getEmployeeUser, logoutEmployee } from "../../utils/auth";
 
 const EmployeeSidebar = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const EmployeeSidebar = () => {
   useEffect(() => {
     const fetchUnread = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = getEmployeeToken();
         if (!token) return;
         const res = await fetch("http://localhost:5000/api/notifications/my-notifications", {
           headers: { Authorization: `Bearer ${token}` },
@@ -63,18 +64,11 @@ const EmployeeSidebar = () => {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    logoutEmployee();
     navigate("/login");
   };
 
-  let user = { name: "Employee", role: "employee" };
-  try {
-    const stored = localStorage.getItem("user");
-    if (stored) user = JSON.parse(stored);
-  } catch (e) {
-    console.error(e);
-  }
+  const user = getEmployeeUser();
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-white/10 bg-slate-900">
