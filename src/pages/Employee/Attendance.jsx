@@ -75,7 +75,7 @@ const Attendance = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load attendance records.");
+        throw new Error(data.message || "Failed to load attendance1 records.");
       }
 
       setAttendanceData({
