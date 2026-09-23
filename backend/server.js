@@ -50,6 +50,7 @@ app.use("/api/auth", authRoutes);
 // =========================
 // ADMIN ROUTES
 // =========================
+app.use("/api/admin/attendance", attendanceRoutes);
 app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/admin", adminEmployeeRoutes);
 app.use("/api/admin", taskRoutes);
@@ -58,22 +59,39 @@ app.use("/api/admin", attendanceRoutes);
 // =========================
 // EMPLOYEE & COMMON ROUTES
 // =========================
-app.use("/api/employee", employeeDashboardRoutes);
 app.use("/api/employee/attendance", attendanceRoutes);
 app.use("/api/employee/tasks", taskRoutes);
 app.use("/api/employee/notifications", notificationRoutes);
+app.use("/api/employee", employeeDashboardRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 // =========================
-// HOME
+// HOME & FALLBACKS
 // =========================
 
 app.get("/", (req, res) => {
   res.json({
     success: true,
     message: "PerformanceTrack Backend is running",
+  });
+});
+
+// JSON 404 handler for unmatched routes
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API route ${req.method} ${req.originalUrl} not found`,
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
   });
 });
 

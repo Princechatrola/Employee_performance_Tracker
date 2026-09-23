@@ -66,12 +66,20 @@ const AdminAttendance = () => {
         {
           method: "GET",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `Server returned error (${response.status})`);
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to load attendance records");
@@ -113,11 +121,20 @@ const AdminAttendance = () => {
           body: JSON.stringify({
             status: editStatus,
             notes: editNotes,
+            employeeId: editingRecord.employee?.employeeId || editingRecord.employeeId,
+            dateString: editingRecord.dateString || selectedDate,
           }),
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `Server returned error (${response.status})`);
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Failed to update attendance status");
@@ -125,7 +142,9 @@ const AdminAttendance = () => {
 
       // Update local state
       setRecords((prev) =>
-        prev.map((rec) => (rec._id === editingRecord._id ? data.attendance : rec))
+        prev.map((rec) =>
+          rec._id === editingRecord._id ? (data.attendance || data.record || rec) : rec
+        )
       );
 
       setEditingRecord(null);

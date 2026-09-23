@@ -72,10 +72,17 @@ const Attendance = () => {
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `Server returned error (${response.status})`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to load attendance1 records.");
+        throw new Error(data.message || "Failed to load attendance records.");
       }
 
       setAttendanceData({
@@ -121,15 +128,20 @@ const Attendance = () => {
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `Server returned error (${response.status})`);
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Check-in failed.");
       }
 
-      setSuccess(
-        `Successfully Checked In at ${data.attendance.checkInTime}! Status: ${data.attendance.status}`
-      );
+      setSuccess(data.message || "Successfully Checked In!");
       setNotes("");
       fetchAttendance();
     } catch (err) {
@@ -159,15 +171,20 @@ const Attendance = () => {
         }
       );
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
+      let data;
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `Server returned error (${response.status})`);
+      }
 
       if (!response.ok) {
         throw new Error(data.message || "Check-out failed.");
       }
 
-      setSuccess(
-        `Successfully Checked Out at ${data.attendance.checkOutTime}! Total Logged: ${data.attendance.workingHours} hrs.`
-      );
+      setSuccess(data.message || "Successfully Checked Out!");
       setNotes("");
       fetchAttendance();
     } catch (err) {

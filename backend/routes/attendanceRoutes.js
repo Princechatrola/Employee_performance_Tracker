@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Attendance = require("../models/attendance");
 const User = require("../models/user");
 const authMiddleware = require("../middleware/authMiddleware");
@@ -15,7 +16,7 @@ const getTodayDateString = (d = new Date()) => {
 
 /* =====================================================
    GET TODAY'S ATTENDANCE STATUS (EMPLOYEE)
-   GET /api/attendance/today
+   GET /api/attendance/today OR /api/employee/attendance/today
 ===================================================== */
 router.get("/today", authMiddleware, async (req, res) => {
   try {
@@ -40,7 +41,7 @@ router.get("/today", authMiddleware, async (req, res) => {
 
 /* =====================================================
    EMPLOYEE CHECK-IN
-   POST /api/attendance/check-in
+   POST /api/attendance/check-in OR /api/employee/attendance/check-in
 ===================================================== */
 router.post("/check-in", authMiddleware, async (req, res) => {
   try {
@@ -104,7 +105,7 @@ router.post("/check-in", authMiddleware, async (req, res) => {
 
 /* =====================================================
    EMPLOYEE CHECK-OUT
-   POST /api/attendance/check-out
+   POST /api/attendance/check-out OR /api/employee/attendance/check-out
 ===================================================== */
 router.post("/check-out", authMiddleware, async (req, res) => {
   try {
@@ -165,12 +166,10 @@ router.post("/check-out", authMiddleware, async (req, res) => {
 
 /* =====================================================
    GET EMPLOYEE ATTENDANCE HISTORY & STATS
-   GET /api/attendance/my-attendance
+   GET /api/attendance/my-attendance OR /api/employee/attendance/my-attendance
 ===================================================== */
 router.get("/my-attendance", authMiddleware, async (req, res) => {
   try {
-    const { month, year } = req.query;
-
     const query = { employee: req.user._id };
 
     const records = await Attendance.find(query).sort({ date: -1 });
@@ -216,7 +215,7 @@ router.get("/my-attendance", authMiddleware, async (req, res) => {
 
 /* =====================================================
    ADMIN: GET ALL ATTENDANCE RECORDS & SUMMARY
-   GET /api/attendance/admin/all OR /api/admin/attendance
+   GET /api/admin/attendance OR /api/attendance/admin/all
 ===================================================== */
 const handleAdminAttendance = async (req, res) => {
   try {
@@ -333,6 +332,7 @@ const handleAdminAttendance = async (req, res) => {
         attendancePercentage,
       },
       records: combinedList,
+      attendance: combinedList,
     });
   } catch (error) {
     console.error("Admin Attendance Error:", error);
@@ -343,24 +343,24 @@ const handleAdminAttendance = async (req, res) => {
   }
 };
 
-router.get("/admin/all", adminMiddleware, handleAdminAttendance);
-router.get("/admin/attendance", adminMiddleware, handleAdminAttendance);
-router.get("/admin-records", adminMiddleware, handleAdminAttendance);
-
 /* =====================================================
    ADMIN: UPDATE ATTENDANCE STATUS / NOTES
-   PATCH /api/attendance/admin/:id/status
 ===================================================== */
-router.patch("/admin/:id/status", adminMiddleware, async (req, res) => {
+const handleAdminUpdateAttendance = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, notes, employeeId, dateString } = req.body;
 
     let record;
-    if (id.startsWith("absent_") || !id.match(/^[0-9a-fA-F]{24}$/)) {
+    if (id && (id.startsWith("absent_") || !mongoose.isValidObjectId(id))) {
       // Create a record if employee was previously unmarked (Absent)
+      const empIdToFind = id.startsWith("absent_") ? id.replace("absent_", "") : id;
       const emp = await User.findOne({
-        $or: [{ employeeId }, { _id: id.replace("absent_", "") }],
+        $or: [
+          ...(employeeId ? [{ employeeId: employeeId }] : []),
+          ...(mongoose.isValidObjectId(empIdToFind) ? [{ _id: empIdToFind }] : []),
+          { employeeId: id },
+        ],
       });
 
       if (!emp) {
@@ -373,18 +373,41 @@ router.patch("/admin/:id/status", adminMiddleware, async (req, res) => {
       const dStr = dateString || getTodayDateString();
       const now = new Date();
 
-      record = new Attendance({
-        employee: emp._id,
-        employeeId: emp.employeeId || "",
-        date: new Date(dStr),
+      // Check if record exists for date
+      let existingRecord = await Attendance.findOne({
+        $or: [{ employee: emp._id }, { employeeId: emp.employeeId }],
         dateString: dStr,
-        checkIn: status !== "Absent" ? now : null,
-        status: status || "Present",
-        notes: notes || "Marked by Admin",
       });
-      await record.save();
+
+      if (existingRecord) {
+        if (status) existingRecord.status = status;
+        if (notes !== undefined) existingRecord.notes = notes;
+        await existingRecord.save();
+        record = await Attendance.findById(existingRecord._id).populate(
+          "employee",
+          "name email employeeId department position status"
+        );
+      } else {
+        record = new Attendance({
+          employee: emp._id,
+          employeeId: emp.employeeId || "",
+          date: new Date(dStr),
+          dateString: dStr,
+          checkIn: status !== "Absent" ? now : null,
+          status: status || "Present",
+          notes: notes || "Marked by Admin",
+        });
+        await record.save();
+        record = await Attendance.findById(record._id).populate(
+          "employee",
+          "name email employeeId department position status"
+        );
+      }
     } else {
-      record = await Attendance.findById(id);
+      record = await Attendance.findById(id).populate(
+        "employee",
+        "name email employeeId department position status"
+      );
       if (!record) {
         return res.status(404).json({
           success: false,
@@ -400,6 +423,7 @@ router.patch("/admin/:id/status", adminMiddleware, async (req, res) => {
       success: true,
       message: "Attendance updated successfully.",
       record,
+      attendance: record,
     });
   } catch (error) {
     console.error("Admin Update Attendance Error:", error);
@@ -408,6 +432,23 @@ router.patch("/admin/:id/status", adminMiddleware, async (req, res) => {
       message: "Failed to update attendance.",
     });
   }
-});
+};
+
+// Admin GET routes matching various prefixes
+router.get("/attendance", adminMiddleware, handleAdminAttendance);
+router.get("/admin/all", adminMiddleware, handleAdminAttendance);
+router.get("/admin/attendance", adminMiddleware, handleAdminAttendance);
+router.get("/admin-records", adminMiddleware, handleAdminAttendance);
+router.get("/all", adminMiddleware, handleAdminAttendance);
+router.get("/", adminMiddleware, handleAdminAttendance);
+
+// Admin PATCH routes matching various prefixes
+router.patch("/attendance/:id/status", adminMiddleware, handleAdminUpdateAttendance);
+router.patch("/attendance/:id", adminMiddleware, handleAdminUpdateAttendance);
+router.patch("/admin/:id/status", adminMiddleware, handleAdminUpdateAttendance);
+router.patch("/admin/:id", adminMiddleware, handleAdminUpdateAttendance);
+router.patch("/:id/status", adminMiddleware, handleAdminUpdateAttendance);
+router.patch("/:id", adminMiddleware, handleAdminUpdateAttendance);
 
 module.exports = router;
+
