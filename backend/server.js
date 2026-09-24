@@ -33,7 +33,7 @@ mongoose
 // =========================
 // ROUTE HANDLERS
 // =========================
-
+const adminProfileRoutes = require("./routes/adminProfileRoutes");
 const authRoutes = require("./routes/authRoutes");
 const adminEmployeeRoutes = require("./routes/adminEmployeeRoutes");
 const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
@@ -50,6 +50,7 @@ app.use("/api/auth", authRoutes);
 // =========================
 // ADMIN ROUTES
 // =========================
+app.use("/api/admin/profile", adminProfileRoutes);
 app.use("/api/admin/attendance", attendanceRoutes);
 app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/admin", adminEmployeeRoutes);
@@ -59,6 +60,7 @@ app.use("/api/admin", attendanceRoutes);
 // =========================
 // EMPLOYEE & COMMON ROUTES
 // =========================
+
 app.use("/api/employee/attendance", attendanceRoutes);
 app.use("/api/employee/tasks", taskRoutes);
 app.use("/api/employee/notifications", notificationRoutes);

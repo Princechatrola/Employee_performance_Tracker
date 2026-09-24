@@ -14,6 +14,8 @@ import AdminAddEmployee from "./pages/Admin/AddEmployee";
 import AdminPerformance from "./pages/Admin/Performance";
 import AdminAssignTasks from "./pages/Admin/AssignTasks";
 import AdminAttendance from "./pages/Admin/Attendance";
+import AdminProfile from "./pages/Admin/AdminProfile";
+
 
 function App() {
   return (
@@ -33,7 +35,7 @@ function App() {
         <Route path="/admin/performance" element={<AdminPerformance />} />
         <Route path="/admin/tasks" element={<AdminAssignTasks />} />
         <Route path="/admin/attendance" element={<AdminAttendance />} />
-
+        <Route path="/admin/profile" element={<AdminProfile />} />
       </Routes>
     </BrowserRouter>
   );

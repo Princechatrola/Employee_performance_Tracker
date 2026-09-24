@@ -360,7 +360,7 @@ router.patch("/tasks/:id/status", adminMiddleware, async (req, res) => {
       if (task.assignedTo && task.assignedTo._id) {
         let notifTitle = "Task Status Updated";
         let notifMsg = `Your task "${task.title}" status is now ${status}.`;
-        
+
         if (status === "Completed") {
           notifTitle = "Task Approved & Completed! 🎉";
           notifMsg = `Great work! Admin reviewed your GitHub repository submission and marked "${task.title}" as Completed.${adminFeedback ? ` Feedback: "${adminFeedback}"` : ""}`;

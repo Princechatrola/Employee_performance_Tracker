@@ -52,6 +52,11 @@ const AdminSidebar = () => {
       path: "/admin/attendance",
       icon: CalendarDays,
     },
+    {
+      name: "Profile",
+      path: "/admin/profile",
+      icon: Users,
+    }
   ];
 
   return (
